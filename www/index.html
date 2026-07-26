@@ -8,7 +8,8 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <script src="capacitor.js"></script>
+
     <!-- CSS DE IMPRESSÃO RIGOROSO PARA UMA SÓ PÁGINA A4 PAISAGEM COM DOIS A5 VERTICAIS (FONTES AMPLIADAS 4X) -->
     <style>
         @media print {
@@ -242,39 +243,53 @@
                 setRodapeWA(t.defaultRodapeWA);
             }, [lang]);
 
-            // --- INICIALIZAÇÃO DOS ANÚNCIOS (BANNER E INTERSTITIAL) ---
+            // --- INICIALIZAÇÃO SEGURA DOS ANÚNCIOS ---
             React.useEffect(() => {
                 async function setupAds() {
-                    try {
-                        await AdMob.initialize({
-                            requestTrackingAuthorization: true,
-                            initializeForTesting: true,
-                        });
+                    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                        const { AdMob } = window.Capacitor.Plugins;
+                        if (!AdMob) return;
 
-                        await AdMob.showBanner({
-                            adId: 'ca-app-pub-3341091649837348/6300978111', // ID de teste oficial do banner
-                            position: BannerAdPosition.BOTTOM_CENTER,
-                            size: BannerAdSize.BANNER,
-                            margin: 0,
-                            isTesting: true
-                        });
-                    } catch (e) {
-                        console.error("Erro ao carregar anúncios:", e);
+                        try {
+                            await AdMob.initialize({
+                                requestTrackingAuthorization: true,
+                                testing: true
+                            });
+
+                            if (!isPro) {
+                                await AdMob.showBanner({
+                                    adId: 'ca-app-pub-3940256099942544/6300978111',
+                                    position: 'BOTTOM_CENTER',
+                                    size: 'BANNER',
+                                    margin: 0,
+                                    isTesting: true
+                                });
+                            } else {
+                                await AdMob.removeBanner();
+                            }
+                        } catch (e) {
+                            console.error("Erro AdMob:", e);
+                        }
                     }
                 }
 
                 setupAds();
-            }, []);
+            }, [isPro]);
 
-            async function mostrarInterstitial() {
-                try {
-                    await AdMob.prepareInterstitial({
-                        adId: 'ca-app-pub-3341091649837348/5333142991', // ID de teste oficial do interstitial
-                        isTesting: true
-                    });
-                    await AdMob.showInterstitial();
-                } catch (e) {
-                    console.error("Erro no interstitial:", e);
+            async function carregarEExibirInterstitial() {
+                if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                    const { AdMob } = window.Capacitor.Plugins;
+                    if (!AdMob) return;
+
+                    try {
+                        await AdMob.prepareInterstitial({
+                            adId: 'ca-app-pub-3940256099942544/1033173712',
+                            isTesting: true
+                        });
+                        await AdMob.showInterstitial();
+                    } catch (e) {
+                        console.error("Erro ao exibir Interstitial:", e);
+                    }
                 }
             }
 
@@ -319,6 +334,10 @@
                 if (!isPro) {
                     setShowAdModal(true);
                     setAdCountdown(15);
+
+                    // Dispara o anúncio nativo se possível
+                    carregarEExibirInterstitial();
+
                     let timer = setInterval(() => {
                         setAdCountdown((prev) => {
                             if (prev <= 1) {
