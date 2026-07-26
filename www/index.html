@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef Menu Direct</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- CSS DE IMPRESSÃO RIGOROSO PARA UMA SÓ PÁGINA A4 PAISAGEM COM DOIS A5 VERTICAIS (FONTES AMPLIADAS 4X) -->
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+            body, html {
+                width: 297mm;
+                height: 210mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #container-impressao, #container-impressao * {
+                visibility: visible;
+            }
+            #container-impressao {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 297mm;
+                height: 210mm;
+                margin: 0;
+                padding: 10mm;
+                box-sizing: border-box;
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 15mm;
+            }
+            .cartaz-a5-vertical {
+                width: 130mm !important;
+                height: 190mm !important;
+                box-sizing: border-box;
+                background: white !important;
+                border: 4px solid #f59e0b !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                padding: 12mm !important;
+                page-break-inside: avoid;
+            }
+            .cartaz-a5-vertical .cartaz-titulo {
+                font-size: 28px !important;
+                padding: 8px 12px !important;
+            }
+            .cartaz-a5-vertical .cartaz-restaurante {
+                font-size: 48px !important;
+            }
+            .cartaz-a5-vertical .cartaz-sub {
+                font-size: 22px !important;
+            }
+            .cartaz-a5-vertical .cartaz-qr-texto {
+                font-size: 18px !important;
+            }
+            .cartaz-a5-vertical .cartaz-rodape {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans m-0 p-0">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const Dicionario = {
+            PT: {
+                proBtn: "PRO (7,50€)",
+                proActive: "PRO Ativo ✓",
+                moeda: "€",
+                grupoLabel: "Link do Grupo WhatsApp do Restaurante:",
+                sec1: "1. Adicionar Prato à Base de Dados",
+                sec2: "2. Clica nos Pratos do Dia",
+                sec3: "3. Menu Pronto a Enviar",
+                enviarWA: "🚀 Gerar & Enviar para o WhatsApp",
+                previewWA: "📱 Pré-visualização da Mensagem no WhatsApp:",
+                imprimirBtn: "🖨️ Imprimir QR Code",
+                textosCartazLabel: "Textos do Cartaz A5:",
+                defaultTitulo: "GRUPO EXCLUSIVO DE CLIENTES",
+                defaultSub: "Aponte a câmara e receba o prato do dia todas as manhãs no seu telemóvel!",
+                defaultRodapeWA: "Bom apetite! Faça já o seu pedido.",
+                anuncioTitulo: "Patrocinado",
+                anuncioCarregando: "A carregar anúncio comercial...",
+                anuncioPro: "Quer saltar os anúncios para sempre? Torne-se PRO por 7,50€/mês.",
+                nenhumPrato: "Nenhum prato selecionado ainda. Clica nos pratos acima!",
+                fraseRodapeLabel: "Frase de Rodapé do WhatsApp (Editável):",
+                tituloCartazLabel: "Título do Cartaz:",
+                subCartazLabel: "Subtítulo / Chamada:",
+                prevCartazLabel: "Pré-visualização em formato A5 Vertical (proporção correta):",
+                aponteCamara: "Aponte a câmara",
+                removerAnuncio: "Remover por 7,50€/mês",
+                bannerPublicidade: "[ Anúncio Banner AdMob / Rodapé ]" ,
+                proConfirm: "Ativar versão PRO sem anúncios por apenas 7,50€/mês?" ,
+                configCartazLabel: "Configurar Cartaz / QR Code" ,
+                restauranteGrupoLabel: "Restaurante / Grupo"
+            },
+            EN: {
+                proBtn: "PRO ($7.50)",
+                proActive: "PRO Active ✓",
+                moeda: "$",
+                grupoLabel: "Restaurant WhatsApp Group Link:",
+                sec1: "1. Add Dish to Database",
+                sec2: "2. Click Daily Dishes",
+                sec3: "3. Ready to Send Menu",
+                enviarWA: "🚀 Generate & Send to WhatsApp",
+                previewWA: "📱 WhatsApp Message Preview:",
+                imprimirBtn: "🖨️ Print QR Code",
+                textosCartazLabel: "A5 Poster Texts:",
+                defaultTitulo: "EXCLUSIVE CLIENT GROUP",
+                defaultSub: "Scan the camera and receive the daily dish every morning on your mobile!",
+                defaultRodapeWA: "Enjoy your meal! Place your order now.",
+                anuncioTitulo: "Sponsored",
+                anuncioCarregando: "Loading commercial ad...",
+                anuncioPro: "Want to skip ads forever? Go PRO for $7.50/month.",
+                nenhumPrato: "No dishes selected yet. Click the dishes above!",
+                fraseRodapeLabel: "WhatsApp Footer Phrase (Editable):",
+                tituloCartazLabel: "Poster Title:",
+                subCartazLabel: "Subtitle / Callout:",
+                prevCartazLabel: "Preview in Vertical A5 format (correct proportion):",
+                aponteCamara: "Scan the camera",
+                removerAnuncio: "Remove for $7.50/month",
+                bannerPublicidade: "[ AdMob Banner / Footer Ad ]" ,
+                proConfirm: "Activate ad-free PRO version for just 7.50/month?" ,
+                configCartazLabel: "Configure Poster / QR Code" ,
+                restauranteGrupoLabel: "Restaurant / Group"
+                
+            },
+            ES: {
+                proBtn: "PRO (7,50€)",
+                proActive: "PRO Activo ✓",
+                moeda: "€",
+                grupoLabel: "Enlace del Grupo de WhatsApp:",
+                sec1: "1. Añadir Plato a la Base de Datos",
+                sec2: "2. Haz clic en los Platos del Día",
+                sec3: "3. Menú Listo para Enviar",
+                enviarWA: "🚀 Gerar y Enviar a WhatsApp",
+                previewWA: "📱 Vista previa del mensaje en WhatsApp:",
+                imprimirBtn: "🖨️ Imprimir Código QR",
+                textosCartazLabel: "Textos del Cartel A5:",
+                defaultTitulo: "GRUPO EXCLUSIVO DE CLIENTES",
+                defaultSub: "¡Escanea la cámara y recibe el plato del día cada mañana en tu móvil!",
+                defaultRodapeWA: "¡Buen provecho! Haz tu pedido ahora.",
+                anuncioTitulo: "Patrocinado",
+                anuncioCarregando: "Cargando anuncio comercial...",
+                anuncioPro: "¿Quieres saltarte los anuncios para siempre? Hazte PRO por 7,50€/mes.",
+                nenhumPrato: "Ningún plato seleccionado todavía. ¡Haz clic arriba!",
+                fraseRodapeLabel: "Frase de pie de página de WhatsApp (Editable):",
+                tituloCartazLabel: "Título del Cartel:",
+                subCartazLabel: "Subtítulo / Llamada:",
+                prevCartazLabel: "Vista previa en formato A5 Vertical (proporción correcta):",
+                aponteCamara: "Escanea la cámara",
+                removerAnuncio: "Eliminar por 7,50€/mes",
+                bannerPublicidade: "[ Anuncio Banner AdMob / Pie ]" ,
+                proConfirm: "¡Activar versión PRO sin anuncios por solo 7,50€/mes?" ,
+                configCartazLabel: "Configurar Cartel / QR Code" ,
+                restauranteGrupoLabel: "Restaurante / Grupo"
+            },
+            FR: {
+                proBtn: "PRO (7,50€)",
+                proActive: "PRO Actif ✓",
+                moeda: "€",
+                grupoLabel: "Lien du Groupe WhatsApp du Restaurant:",
+                sec1: "1. Ajouter un Plat à la Base de Données",
+                sec2: "2. Cliquez sur les Plats du Jour",
+                sec3: "3. Menu Prêt à Envoyer",
+                enviarWA: "🚀 Générer & Envoyer sur WhatsApp",
+                previewWA: "📱 Aperçu du Message WhatsApp :",
+                imprimirBtn: "🖨️ Imprimer le QR Code",
+                textosCartazLabel: "Textes de l'Affiche A5 :",
+                defaultTitulo: "GROUPE EXCLUSIF DE CLIENTS",
+                defaultSub: "Scannez la caméra et recevez le plat du jour chaque matin sur votre mobile !",
+                defaultRodapeWA: "Bon appétit ! Passez votre commande dès maintenant.",
+                anuncioTitulo: "Sponsorisé",
+                anuncioCarregando: "Chargement de l'annonce...",
+                anuncioPro: "Envie de sauter les pubs pour toujours ? Passez PRO pour 7,50€/mois.",
+                nenhumPrato: "Aucun plat sélectionné. Cliquez sur les plats ci-dessus !",
+                fraseRodapeLabel: "Phrase de pied de page WhatsApp (Modifiable):",
+                tituloCartazLabel: "Titre de l'Affiche :",
+                subCartazLabel: "Sous-titre / Appel :",
+                prevCartazLabel: "Aperçu au format A5 Vertical (proportion correcte) :",
+                aponteCamara: "Scannez la caméra",
+                removerAnuncio: "Supprimer pour 7,50€/mois",
+                bannerPublicidade: "[ Annonce Bannière AdMob / Bas de page ]" ,
+                proConfirm: "Activer la version PRO sans publicité pour seulement 7,50€/mois ?" ,
+                configCartazLabel: "Configurer l'affiche / QR Code" ,
+                restauranteGrupoLabel: "Restaurant / Groupe"
+            }
+        };
+
+        function App() {
+            const [lang, setLang] = React.useState("PT");
+            const t = Dicionario[lang];
+
+            const [isPro, setIsPro] = React.useState(false);
+            const [showAdModal, setShowAdModal] = React.useState(false);
+            const [adCountdown, setAdCountdown] = React.useState(15);
+            
+            
+            const [nomeRestaurante, setNomeRestaurante] = React.useState("Restaurante Antonio Marques");
+            const [whatsappGrupoLink, setWhatsappGrupoLink] = React.useState("https://chat.whatsapp.com/CJIH7Pp3qaHWRPU8p8");
+            
+            const [novoPratoNome, setNovoPratoNome] = React.useState("");
+            const [novoPratoPreco, setNovoPratoPreco] = React.useState("");
+            
+            const [pratosDB, setPratosDB] = React.useState([
+                { id: 1, nome: "Frango na Brasa", preco: "9.50" },
+                { id: 2, nome: "Costeletão de Vitelão", preco: "12.00" },
+                { id: 3, nome: "Bacalhau à Brás", preco: "9.00" },
+                { id: 4, nome: "Entrecosto Grelhado", preco: "10.00" }
+            ]);
+
+            const hoje = new Date().toISOString().split('T')[0];
+            const [dataMenu, setDataMenu] = React.useState(hoje);
+            const [menuSelecionado, setMenuSelecionado] = React.useState([]);
+
+            const [cartazTitulo, setCartazTitulo] = React.useState(t.defaultTitulo);
+            const [cartazSub, setCartazSub] = React.useState(t.defaultSub);
+            const [rodapeWA, setRodapeWA] = React.useState(t.defaultRodapeWA);
+
+            React.useEffect(() => {
+                setCartazTitulo(t.defaultTitulo);
+                setCartazSub(t.defaultSub);
+                setRodapeWA(t.defaultRodapeWA);
+            }, [lang]);
+
+            // --- INICIALIZAÇÃO DOS ANÚNCIOS (BANNER E INTERSTITIAL) ---
+            React.useEffect(() => {
+                async function setupAds() {
+                    try {
+                        await AdMob.initialize({
+                            requestTrackingAuthorization: true,
+                            initializeForTesting: true,
+                        });
+
+                        await AdMob.showBanner({
+                            adId: 'ca-app-pub-3341091649837348/6300978111', // ID de teste oficial do banner
+                            position: BannerAdPosition.BOTTOM_CENTER,
+                            size: BannerAdSize.BANNER,
+                            margin: 0,
+                            isTesting: true
+                        });
+                    } catch (e) {
+                        console.error("Erro ao carregar anúncios:", e);
+                    }
+                }
+
+                setupAds();
+            }, []);
+
+            async function mostrarInterstitial() {
+                try {
+                    await AdMob.prepareInterstitial({
+                        adId: 'ca-app-pub-3341091649837348/5333142991', // ID de teste oficial do interstitial
+                        isTesting: true
+                    });
+                    await AdMob.showInterstitial();
+                } catch (e) {
+                    console.error("Erro no interstitial:", e);
+                }
+            }
+
+            const adicionarPrato = (e) => {
+                e.preventDefault();
+                if (!novoPratoNome.trim()) return;
+                const novo = {
+                    id: Date.now(),
+                    nome: novoPratoNome,
+                    preco: novoPratoPreco.trim() ? novoPratoPreco : ""
+                };
+                setPratosDB([...pratosDB, novo]);
+                setNovoPratoNome("");
+                setNovoPratoPreco("");
+            };
+
+            const apagarPratoDB = (id) => {
+                setPratosDB(pratosDB.filter(p => p.id !== id));
+                setMenuSelecionado(menuSelecionado.filter(item => item.id !== id));
+            };
+
+            const editarPratoDB = (id, novoNome, novoPreco) => {
+                setPratosDB(pratosDB.map(p => p.id === id ? { ...p, nome: novoNome, preco: novoPreco } : p));
+            };
+
+            const selecionarParaMenu = (prato) => {
+                if (!menuSelecionado.some(item => item.id === prato.id)) {
+                    setMenuSelecionado([...menuSelecionado, prato]);
+                }
+            };
+
+            const removerDoMenu = (id) => {
+                setMenuSelecionado(menuSelecionado.filter(item => item.id !== id));
+            };
+
+            const handleGerarEEnviar = () => {
+                if (menuSelecionado.length === 0) {
+                    alert(t.nenhumPrato);
+                    return;
+                }
+
+                if (!isPro) {
+                    setShowAdModal(true);
+                    setAdCountdown(15);
+                    let timer = setInterval(() => {
+                        setAdCountdown((prev) => {
+                            if (prev <= 1) {
+                                clearInterval(timer);
+                                setShowAdModal(false);
+                                dispararWhatsAppReal();
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                } else {
+                    dispararWhatsAppReal();
+                }
+            };
+
+            const dispararWhatsAppReal = () => {
+                let texto = `*${nomeRestaurante.toUpperCase()}* - Menu do Dia (${dataMenu})\n\n`;
+                menuSelecionado.forEach(item => {
+                    texto += `• ${item.nome} ${item.preco ? `*${item.preco}${t.moeda}*` : ''}\n`;
+                });
+                texto += `\n${rodapeWA}`;
+
+                // CORREÇÃO: Utiliza sempre o endpoint universal de partilha de texto do WhatsApp sem corromper com o link do grupo
+                const urlWA = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+
+                window.open(urlWA, '_blank');
+            };
+
+            const imprimirCartaz = () => {
+                window.print();
+            };
+
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(whatsappGrupoLink || "https://whatsapp.com")}`;
+
+            const ConteudoCartaz = () => (
+                <>
+                    <div className="text-center space-y-3">
+                        <div className="cartaz-titulo text-[11px] uppercase font-black bg-amber-100 text-amber-900 px-3 py-1.5 rounded-md border border-amber-300 w-full text-center">
+                            {cartazTitulo}
+                        </div>
+                        <div className="cartaz-restaurante text-2xl font-black uppercase tracking-tight text-slate-900 border-b border-dashed border-slate-300 w-full text-center pb-1">
+                            {nomeRestaurante}
+                        </div>
+                        <div className="cartaz-sub text-xs text-slate-600 font-semibold leading-relaxed border border-dashed border-slate-300 rounded p-1.5 w-full text-center">
+                            {cartazSub}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center bg-white p-3 rounded-xl border-2 border-slate-300 shadow-sm w-48 mx-auto my-4">
+                        <img src={qrCodeUrl} alt="QR Code WhatsApp" className="w-32 h-32 object-contain block" />
+                        <span className="cartaz-qr-texto text-[10px] text-slate-700 mt-2 font-extrabold uppercase text-center">{t.aponteCamara}</span>
+                    </div>
+
+                    <div className="text-center">
+                        <span className="cartaz-rodape text-[9px] font-bold text-slate-400 uppercase tracking-widest">Chef Menu Direct</span>
+                    </div>
+                </>
+            );
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-slate-900 shadow-2xl flex flex-col justify-between border-x border-slate-800">
+                    
+                    {/* TOPO / HEADER (Com o seletor de idiomas e botão Pro, que ficam de fora) */}
+<header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10 gap-2">
+    <div className="flex-1 overflow-hidden">
+        <h1 className="text-lg font-black text-amber-400 tracking-tight">Chef Menu Direct</h1>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+        <select 
+            value={lang} 
+            onChange={(e) => setLang(e.target.value)}
+            className="bg-slate-900 border border-slate-700 text-amber-400 text-xs font-black rounded px-1.5 py-1 focus:outline-none"
+        >
+            <option value="PT">PT</option>
+            <option value="EN">EN</option>
+            <option value="ES">ES</option>
+            <option value="FR">FR</option>
+        </select>
+
+       {!isPro ? (
+            <button 
+                onClick={() => {
+                    if(confirm(t.proConfirm)) {
+                        setIsPro(true);
+                    }
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow transition active:scale-95"
+            >
+                {t.proBtn}
+            </button>
+        ) : (
+            <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1.5 rounded-full font-extrabold">
+                {t.proActive}
+            </span>
+        )}
+    </div>
+</header>
+
+{/* CORPO PRINCIPAL */}
+<main className="p-4 space-y-6 flex-1 pb-32">
+    
+    {/* GAVETA: RESTAURANTE / GRUPO */}
+    <details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group my-3">
+        <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
+            <span>🍽️ {t.restauranteGrupoLabel}</span>
+            <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+
+        <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
+            {/* Nome do Restaurante */}
+            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">Nome do Restaurante</label>
+                <input 
+                    type="text" 
+                    value={nomeRestaurante} 
+                    onChange={(e) => setNomeRestaurante(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-bold focus:outline-none focus:border-amber-500"
+                />
+            </div>
+
+            {/* Grupo WhatsApp */}
+            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">{t.grupoLabel}</label>
+                <input 
+                    type="text" 
+                    value={whatsappGrupoLink} 
+                    onChange={(e) => setWhatsappGrupoLink(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
+                />
+            </div>
+        </div>
+    </details>
+
+                       {/* SECÇÃO 1: CRIAR / ADICIONAR PRATOS */}
+                        <div className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl shadow">
+                            <h2 className="text-xs font-black uppercase tracking-wider text-slate-300 mb-2.5">{t.sec1}</h2>
+                            <form onSubmit={adicionarPrato} className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Ex: Cozido à Portuguesa" 
+                                    value={novoPratoNome}
+                                    onChange={(e) => setNovoPratoNome(e.target.value)}
+                                    className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-bold text-slate-100 focus:outline-none focus:border-amber-500"
+                                />
+                                <input 
+                                    type="number" 
+                                    step="0.05"
+                                    placeholder={`Preço ${t.moeda}`} 
+                                    value={novoPratoPreco}
+                                    onChange={(e) => setNovoPratoPreco(e.target.value)}
+                                    className="w-24 shrink-0 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-black text-amber-400 focus:outline-none focus:border-amber-500"
+                                />
+                                <button type="submit" className="bg-slate-700 hover:bg-slate-600 text-amber-400 px-4 py-3 rounded-lg text-base font-black shrink-0">+</button>
+                            </form>
+                        </div>
+
+                        {/* SECÇÃO 2: A DESPENSA */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2.5">
+                                <h2 className="text-xs font-black uppercase tracking-wider text-slate-300">{t.sec2}</h2>
+                                <span className="text-xs font-bold text-slate-400">Toque para adicionar</span>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {pratosDB.map((prato) => (
+                                    <div 
+                                        key={prato.id}
+                                        className="bg-slate-800 border border-slate-700/80 p-3.5 rounded-xl flex items-center justify-between gap-2 shadow-sm"
+                                    >
+                                        <button 
+                                            onClick={() => selecionarParaMenu(prato)}
+                                            className="flex-1 text-left flex justify-between items-center"
+                                        >
+                                            <span className="text-sm font-extrabold text-slate-100 hover:text-amber-400">{prato.nome}</span>
+                                            <span className="text-sm font-black text-amber-400 font-mono">{prato.preco ? `${prato.preco}${t.moeda}` : ''}</span>
+                                        </button>
+                                        <div className="flex items-center gap-1.5 border-l border-slate-700 pl-2.5">
+                                            <button 
+                                                onClick={() => {
+                                                    const novoNome = prompt("Editar nome do prato:", prato.nome);
+                                                    if (novoNome !== null) {
+                                                        const novoPreco = prompt(`Editar preço (${t.moeda}):`, prato.preco);
+                                                        editarPratoDB(prato.id, novoNome, novoPreco);
+                                                    }
+                                                }}
+                                                className="text-sm text-slate-400 hover:text-amber-400 px-1"
+                                                title="Editar"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button 
+                                                onClick={() => apagarPratoDB(prato.id)} 
+                                                className="text-rose-400 hover:text-rose-300 font-black text-lg px-1.5"
+                                                title="Apagar"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* SECÇÃO 3: MENU DO DIA SELECIONADO */}
+                        <div className="bg-slate-800 border-2 border-amber-500/40 p-4 rounded-xl shadow-lg">
+                            <div className="flex justify-between items-center mb-3">
+                                <h2 className="text-xs font-black uppercase tracking-wider text-amber-400">{t.sec3}</h2>
+                                <input 
+                                    type="date" 
+                                    value={dataMenu}
+                                    onChange={(e) => setDataMenu(e.target.value)}
+                                    className="bg-slate-900 border border-slate-700 text-xs rounded p-1.5 text-amber-400 font-mono font-bold"
+                                />
+                            </div>
+
+                            {menuSelecionado.length === 0 ? (
+                                <p className="text-xs text-slate-300 text-center py-5 italic font-bold">{t.nenhumPrato}</p>
+                            ) : (
+                                <div className="space-y-2 mb-4">
+                                    {menuSelecionado.map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center bg-slate-900/80 px-3.5 py-3 rounded-lg text-sm font-bold">
+                                            <span className="text-slate-100">• {item.nome}</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono text-amber-400 font-black">{item.preco ? `${item.preco}${t.moeda}` : ''}</span>
+                                                <button onClick={() => removerDoMenu(item.id)} className="text-rose-400 hover:text-rose-300 font-black text-lg px-1.5">×</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button 
+                                onClick={handleGerarEEnviar}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black py-3.5 px-4 rounded-xl text-sm uppercase tracking-wider shadow-xl transition flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                {t.enviarWA}
+                            </button>
+                        </div>
+
+                        {/* PRÉ-VISUALIZAÇÃO DA MENSAGEM */}
+                        <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">{t.previewWA}</h3>
+                            <div className="bg-emerald-950/20 border border-emerald-900/40 p-3.5 rounded-lg font-mono text-xs text-slate-200 whitespace-pre-line leading-relaxed font-bold">
+{`*${nomeRestaurante.toUpperCase()}* - Menu do Dia (${dataMenu})
+
+${menuSelecionado.length > 0 ? menuSelecionado.map(i => `• ${i.nome} ${i.preco ? `*${i.preco}${t.moeda}*` : ''}`).join('\n') : `• (Exemplo de prato do dia 9.50${t.moeda})`}
+
+`}
+                            </div>
+                            <div>
+                                <span className="text-xs font-bold text-slate-300 block mb-1">{t.fraseRodapeLabel}</span>
+                                <input 
+                                    type="text" 
+                                    value={rodapeWA} 
+                                    onChange={(e) => setRodapeWA(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                                />
+                            </div>
+                        </div>
+
+                       {/* SECÇÃO RETÁCTIL NATIVA (SEM ESTADOS, SEM RISCO DE FALHAR) */}
+<details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group">
+    <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
+    <span>📐 {t.configCartazLabel}</span>
+    <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
+</summary>
+
+    <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
+        <div className="flex justify-center">
+            <button 
+                type="button"
+                onClick={imprimirCartaz}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-6 py-3 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider"
+            >
+                {t.imprimirBtn}
+            </button>
+        </div>
+
+        <div className="space-y-3 bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+            <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">{t.textosCartazLabel}</label>
+            <div>
+                <span className="text-xs font-bold text-slate-300 block mb-1">{t.tituloCartazLabel}</span>
+                <input 
+                    type="text" 
+                    value={cartazTitulo} 
+                    onChange={(e) => setCartazTitulo(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-extrabold focus:outline-none focus:border-amber-500"
+                />
+            </div>
+            <div>
+                <span className="text-xs font-bold text-slate-300 block mb-1">{t.subCartazLabel}</span>
+                <textarea 
+                    value={cartazSub} 
+                    onChange={(e) => setCartazSub(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-amber-500 resize-none"
+                    rows="2"
+                />
+            </div>
+        </div>
+        
+        <p className="text-xs font-bold text-slate-300 text-center italic">{t.prevCartazLabel}</p>
+
+        <div className="bg-white text-slate-900 p-6 rounded-lg border-4 border-amber-500 flex flex-col justify-between shadow-inner max-w-[280px] mx-auto aspect-[1/1.414]">
+            <ConteudoCartaz />
+        </div>
+    </div>
+</details>
+
+                    </main>
+
+                    {/* BLOCO OCULTO PARA A IMPRESSÃO: DUAS CÓPIAS A5 VERTICAIS NUMA SÓ FOLHA A4 PAISAGEM */}
+                    <div id="container-impressao" style={{display: 'none'}}>
+                        <div className="cartaz-a5-vertical">
+                            <ConteudoCartaz />
+                        </div>
+                        <div className="cartaz-a5-vertical">
+                            <ConteudoCartaz />
+                        </div>
+                    </div>
+
+                    {/* BANNER DUPLO FIXO NO FOOTER (VERSÃO FREE) */}
+                    {!isPro && (
+                        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-950 border-t border-slate-800 p-2 text-center text-[10px] text-slate-400 flex flex-col gap-1 shadow-2xl font-bold z-20">
+                            <div className="flex justify-between items-center px-3 bg-slate-900 py-1.5 rounded border border-slate-800">
+                                <span className="text-amber-400/80">[ AdMob Banner 1 ]</span>
+                                <button onClick={() => setIsPro(true)} className="text-amber-400 underline font-black">{t.removerAnuncio}</button>
+                            </div>
+                            <div className="text-[9px] text-slate-500 uppercase tracking-widest">
+                                {t.bannerPublicidade}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DO ANÚNCIO INTERSTICIAL DE 15 SEGUNDOS (FULLSCREEN) */}
+                    {showAdModal && (
+                        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+                            <div className="bg-slate-900 border-2 border-amber-500/50 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+                                <span className="bg-amber-500/20 text-amber-400 text-xs uppercase tracking-widest px-3 py-1 rounded-full font-extrabold">{t.anuncioTitulo}</span>
+                                <div className="py-8 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
+                                    <p className="text-xs font-bold text-slate-300">{t.anuncioCarregando}</p>
+                                    <span className="text-5xl font-black text-amber-400 font-mono tracking-wider">{adCountdown}s</span>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Por favor aguarde o envio</p>
+                                </div>
+                                <p className="text-xs font-semibold text-slate-400">{t.anuncioPro}</p>
+                                <button 
+                                    onClick={() => { setShowAdModal(false); setIsPro(true); }}
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black py-3 rounded-xl transition shadow-lg uppercase tracking-wider"
+                                >
+                                    Ativar PRO Agora (7,50{t.moeda})
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

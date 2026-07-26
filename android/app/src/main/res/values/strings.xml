@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Chef Menu Direct</string>
+    <string name="title_activity_main">Chef Menu Direct</string>
+    <string name="package_name">com.chefmenudirect.app</string>
+    <string name="custom_url_scheme">com.chefmenudirect.app</string>
+</resources>
