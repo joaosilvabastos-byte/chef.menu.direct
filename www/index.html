@@ -112,7 +112,8 @@
                 bannerPublicidade: "[ Anúncio Banner AdMob / Rodapé ]" ,
                 proConfirm: "Ativar versão PRO sem anúncios por apenas 7,50€/mês?" ,
                 configCartazLabel: "Configurar Cartaz / QR Code" ,
-                restauranteGrupoLabel: "Restaurante / Grupo"
+                restauranteGrupoLabel: "Restaurante / Grupo",
+                limiteAtingidoMsg: "Atingiu o limite de 10 envios gratuitos com anúncios. Para continuar a enviar menus sem limites e sem publicidade, ative a versão PRO por 7,50€/mês."
             },
             EN: {
                 proBtn: "PRO ($7.50)",
@@ -142,8 +143,8 @@
                 bannerPublicidade: "[ AdMob Banner / Footer Ad ]" ,
                 proConfirm: "Activate ad-free PRO version for just 7.50/month?" ,
                 configCartazLabel: "Configure Poster / QR Code" ,
-                restauranteGrupoLabel: "Restaurant / Group"
-                
+                restauranteGrupoLabel: "Restaurant / Group",
+                limiteAtingidoMsg: "You have reached the limit of 10 free sends with ads. To continue sending menus without limits and ads, activate the PRO version for $7.50/month."
             },
             ES: {
                 proBtn: "PRO (7,50€)",
@@ -173,7 +174,8 @@
                 bannerPublicidade: "[ Anuncio Banner AdMob / Pie ]" ,
                 proConfirm: "¡Activar versión PRO sin anuncios por solo 7,50€/mes?" ,
                 configCartazLabel: "Configurar Cartel / QR Code" ,
-                restauranteGrupoLabel: "Restaurante / Grupo"
+                restauranteGrupoLabel: "Restaurante / Grupo",
+                limiteAtingidoMsg: "Has alcanzado el límite de 10 envíos gratuitos con anuncios. Para continuar sin límites, activa la versión PRO por 7,50€/mes."
             },
             FR: {
                 proBtn: "PRO (7,50€)",
@@ -203,7 +205,8 @@
                 bannerPublicidade: "[ Annonce Bannière AdMob / Bas de page ]" ,
                 proConfirm: "Activer la version PRO sans publicité pour seulement 7,50€/mois ?" ,
                 configCartazLabel: "Configurer l'affiche / QR Code" ,
-                restauranteGrupoLabel: "Restaurant / Groupe"
+                restauranteGrupoLabel: "Restaurant / Groupe",
+                limiteAtingidoMsg: "Vous avez atteint la limite de 10 envois gratuits avec publicités. Pour continuer sans limites, activez la version PRO pour 7,50€/mois."
             }
         };
 
@@ -214,28 +217,48 @@
             const [isPro, setIsPro] = React.useState(false);
             const [showAdModal, setShowAdModal] = React.useState(false);
             const [adCountdown, setAdCountdown] = React.useState(15);
+
+            // Contador de envios gratuitos guardado no localStorage
+            const [enviosGratuitosCount, setEnviosGratuitosCount] = React.useState(() => {
+                const salvo = localStorage.getItem('enviosGratuitosCountSalvo');
+                return salvo ? parseInt(salvo, 10) : 0;
+            });
             
-            
-            const [nomeRestaurante, setNomeRestaurante] = React.useState("Restaurante Antonio Marques");
-            const [whatsappGrupoLink, setWhatsappGrupoLink] = React.useState("https://chat.whatsapp.com/CJIH7Pp3qaHWRPU8p8");
-            
+            const [nomeRestaurante, setNomeRestaurante] = React.useState(() => {
+                return localStorage.getItem('nomeRestauranteSalvo') || "Restaurante António Marques";
+            });
+
+            const [whatsappGrupoLink, setWhatsappGrupoLink] = React.useState(() => {
+                return localStorage.getItem('whatsappGrupoLinkSalvo') || "https://wa.me/CJIH7Pp3qaHWRPU8p8";
+            });
             const [novoPratoNome, setNovoPratoNome] = React.useState("");
             const [novoPratoPreco, setNovoPratoPreco] = React.useState("");
             
-            const [pratosDB, setPratosDB] = React.useState([
-                { id: 1, nome: "Frango na Brasa", preco: "9.50" },
-                { id: 2, nome: "Costeletão de Vitelão", preco: "12.00" },
-                { id: 3, nome: "Bacalhau à Brás", preco: "9.00" },
-                { id: 4, nome: "Entrecosto Grelhado", preco: "10.00" }
-            ]);
+            const [pratosDB, setPratosDB] = React.useState(() => {
+                const salvo = localStorage.getItem('pratosDBSalvo');
+                return salvo ? JSON.parse(salvo) : [
+                    { id: 1, nome: "Frango na Brasa", preco: "9.50" },
+                    { id: 2, nome: "Costeletão de Vitelão", preco: "12.00" },
+                    { id: 3, nome: "Bacalhau à Brás", preco: "9.00" },
+                    { id: 4, nome: "Entrecosto Grelhado", preco: "10.00" }
+                ];
+            });
 
             const hoje = new Date().toISOString().split('T')[0];
             const [dataMenu, setDataMenu] = React.useState(hoje);
             const [menuSelecionado, setMenuSelecionado] = React.useState([]);
 
-            const [cartazTitulo, setCartazTitulo] = React.useState(t.defaultTitulo);
-            const [cartazSub, setCartazSub] = React.useState(t.defaultSub);
-            const [rodapeWA, setRodapeWA] = React.useState(t.defaultRodapeWA);
+            const [cartazTitulo, setCartazTitulo] = React.useState(() => {
+                return localStorage.getItem('cartazTituloSalvo') || t.defaultTitulo;
+            });
+
+            const [cartazSub, setCartazSub] = React.useState(() => {
+                return localStorage.getItem('cartazSubSalvo') || t.defaultSub;
+            });
+
+            const [rodapeWA, setRodapeWA] = React.useState(() => {
+                return localStorage.getItem('rodapeWASalvo') || t.defaultRodapeWA;
+            });
 
             React.useEffect(() => {
                 setCartazTitulo(t.defaultTitulo);
@@ -301,18 +324,24 @@
                     nome: novoPratoNome,
                     preco: novoPratoPreco.trim() ? novoPratoPreco : ""
                 };
-                setPratosDB([...pratosDB, novo]);
+                const atualizado = [...pratosDB, novo];
+                setPratosDB(atualizado);
+                localStorage.setItem('pratosDBSalvo', JSON.stringify(atualizado));
                 setNovoPratoNome("");
                 setNovoPratoPreco("");
             };
 
             const apagarPratoDB = (id) => {
-                setPratosDB(pratosDB.filter(p => p.id !== id));
+                const atualizado = pratosDB.filter(p => p.id !== id);
+                setPratosDB(atualizado);
+                localStorage.setItem('pratosDBSalvo', JSON.stringify(atualizado));
                 setMenuSelecionado(menuSelecionado.filter(item => item.id !== id));
             };
 
             const editarPratoDB = (id, novoNome, novoPreco) => {
-                setPratosDB(pratosDB.map(p => p.id === id ? { ...p, nome: novoNome, preco: novoPreco } : p));
+                const atualizado = pratosDB.map(p => p.id === id ? { ...p, nome: novoNome, preco: novoPreco } : p);
+                setPratosDB(atualizado);
+                localStorage.setItem('pratosDBSalvo', JSON.stringify(atualizado));
             };
 
             const selecionarParaMenu = (prato) => {
@@ -331,7 +360,19 @@
                     return;
                 }
 
+                // Se não é PRO, verificamos se já atingiu o limite de 10 envios gratuitos
                 if (!isPro) {
+                    if (enviosGratuitosCount >= 10) {
+                        alert(t.limiteAtingidoMsg);
+                        setIsPro(true); // Abre conversão ou força prompt
+                        return;
+                    }
+
+                    // Incrementa o contador de envios gratuitos e guarda
+                    const novoCount = enviosGratuitosCount + 1;
+                    setEnviosGratuitosCount(novoCount);
+                    localStorage.setItem('enviosGratuitosCountSalvo', novoCount);
+
                     setShowAdModal(true);
                     setAdCountdown(15);
 
@@ -361,9 +402,7 @@
                 });
                 texto += `\n${rodapeWA}`;
 
-                // CORREÇÃO: Utiliza sempre o endpoint universal de partilha de texto do WhatsApp sem corromper com o link do grupo
                 const urlWA = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-
                 window.open(urlWA, '_blank');
             };
 
@@ -371,7 +410,7 @@
                 window.print();
             };
 
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(whatsappGrupoLink || "https://whatsapp.com")}`;
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(whatsappGrupoLink.trim())}&ecc=M&margin=1`;
 
             const ConteudoCartaz = () => (
                 <>
@@ -401,78 +440,85 @@
             return (
                 <div className="max-w-md mx-auto min-h-screen bg-slate-900 shadow-2xl flex flex-col justify-between border-x border-slate-800">
                     
-                    {/* TOPO / HEADER (Com o seletor de idiomas e botão Pro, que ficam de fora) */}
-<header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10 gap-2">
-    <div className="flex-1 overflow-hidden">
-        <h1 className="text-lg font-black text-amber-400 tracking-tight">Chef Menu Direct</h1>
-    </div>
-    <div className="flex items-center gap-2 shrink-0">
-        <select 
-            value={lang} 
-            onChange={(e) => setLang(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-amber-400 text-xs font-black rounded px-1.5 py-1 focus:outline-none"
-        >
-            <option value="PT">PT</option>
-            <option value="EN">EN</option>
-            <option value="ES">ES</option>
-            <option value="FR">FR</option>
-        </select>
+                    {/* TOPO / HEADER */}
+                    <header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10 gap-2">
+                        <div className="flex-1 overflow-hidden">
+                            <h1 className="text-lg font-black text-amber-400 tracking-tight">Chef Menu Direct</h1>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <select 
+                                value={lang} 
+                                onChange={(e) => setLang(e.target.value)}
+                                className="bg-slate-900 border border-slate-700 text-amber-400 text-xs font-black rounded px-1.5 py-1 focus:outline-none"
+                            >
+                                <option value="PT">PT</option>
+                                <option value="EN">EN</option>
+                                <option value="ES">ES</option>
+                                <option value="FR">FR</option>
+                            </select>
 
-       {!isPro ? (
-            <button 
-                onClick={() => {
-                    if(confirm(t.proConfirm)) {
-                        setIsPro(true);
-                    }
-                }}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow transition active:scale-95"
-            >
-                {t.proBtn}
-            </button>
-        ) : (
-            <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1.5 rounded-full font-extrabold">
-                {t.proActive}
-            </span>
-        )}
-    </div>
-</header>
+                            {!isPro ? (
+                                <button 
+                                    onClick={() => {
+                                        if(confirm(t.proConfirm)) {
+                                            setIsPro(true);
+                                        }
+                                    }}
+                                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow transition active:scale-95"
+                                >
+                                    {t.proBtn}
+                                </button>
+                            ) : (
+                                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1.5 rounded-full font-extrabold">
+                                    {t.proActive}
+                                </span>
+                            )}
+                        </div>
+                    </header>
 
-{/* CORPO PRINCIPAL */}
-<main className="p-4 space-y-6 flex-1 pb-32">
-    
-    {/* GAVETA: RESTAURANTE / GRUPO */}
-    <details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group my-3">
-        <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
-            <span>🍽️ {t.restauranteGrupoLabel}</span>
-            <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
-        </summary>
+                    {/* CORPO PRINCIPAL */}
+                    <main className="p-4 space-y-6 flex-1 pb-32">
+                        
+                        {/* GAVETA: RESTAURANTE / GRUPO */}
+                        <details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group my-3">
+                            <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
+                                <span>🍽️ {t.restauranteGrupoLabel}</span>
+                                <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
 
-        <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
-            {/* Nome do Restaurante */}
-            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
-                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">Nome do Restaurante</label>
-                <input 
-                    type="text" 
-                    value={nomeRestaurante} 
-                    onChange={(e) => setNomeRestaurante(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-bold focus:outline-none focus:border-amber-500"
-                />
-            </div>
+                            <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
+                                <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+                                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">Nome do Restaurante</label>
+                                    <input 
+                                        type="text" 
+                                        value={nomeRestaurante} 
+                                        onChange={(e) => {
+                                            const novoValor = e.target.value;
+                                            setNomeRestaurante(novoValor);
+                                            localStorage.setItem('nomeRestauranteSalvo', novoValor);
+                                        }}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-bold focus:outline-none focus:border-amber-500"
+                                    />
+                                </div>
 
-            {/* Grupo WhatsApp */}
-            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
-                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">{t.grupoLabel}</label>
-                <input 
-                    type="text" 
-                    value={whatsappGrupoLink} 
-                    onChange={(e) => setWhatsappGrupoLink(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
-                />
-            </div>
-        </div>
-    </details>
+                              <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+                                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1.5">{t.grupoLabel}</label>
+                                    <input 
+                                        type="text" 
+                                        value={whatsappGrupoLink} 
+                                        onChange={(e) => {
+                                            const valor = e.target.value;
+                                            setWhatsappGrupoLink(valor);
+                                            localStorage.setItem('whatsappGrupoLinkSalvo', valor);
+                                        }}
+                                        placeholder="https://chat.whatsapp.com/..."
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
+                                    />
+                                </div>
+                            </div>
+                        </details>
 
-                       {/* SECÇÃO 1: CRIAR / ADICIONAR PRATOS */}
+                        {/* SECÇÃO 1: CRIAR / ADICIONAR PRATOS */}
                         <div className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl shadow">
                             <h2 className="text-xs font-black uppercase tracking-wider text-slate-300 mb-2.5">{t.sec1}</h2>
                             <form onSubmit={adicionarPrato} className="flex gap-2">
@@ -553,6 +599,12 @@
                                 />
                             </div>
 
+                            {!isPro && (
+                                <p className="text-[11px] text-amber-400/90 font-bold mb-3 text-center bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                                    Envios gratuitos usados: {enviosGratuitosCount} / 10
+                                </p>
+                            )}
+
                             {menuSelecionado.length === 0 ? (
                                 <p className="text-xs text-slate-300 text-center py-5 italic font-bold">{t.nenhumPrato}</p>
                             ) : (
@@ -598,57 +650,57 @@ ${menuSelecionado.length > 0 ? menuSelecionado.map(i => `• ${i.nome} ${i.preco
                             </div>
                         </div>
 
-                       {/* SECÇÃO RETÁCTIL NATIVA (SEM ESTADOS, SEM RISCO DE FALHAR) */}
-<details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group">
-    <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
-    <span>📐 {t.configCartazLabel}</span>
-    <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
-</summary>
+                        {/* CONFIGURAR CARTAZ */}
+                        <details className="bg-slate-800/90 border border-slate-700 p-4 rounded-xl space-y-4 shadow group">
+                            <summary className="cursor-pointer text-amber-400 font-bold flex justify-between items-center select-none">
+                                <span>📐 {t.configCartazLabel}</span>
+                                <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
 
-    <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
-        <div className="flex justify-center">
-            <button 
-                type="button"
-                onClick={imprimirCartaz}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-6 py-3 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider"
-            >
-                {t.imprimirBtn}
-            </button>
-        </div>
+                            <div className="pt-3 space-y-4 border-t border-slate-700 mt-3">
+                                <div className="flex justify-center">
+                                    <button 
+                                        type="button"
+                                        onClick={imprimirCartaz}
+                                        className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-6 py-3 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider"
+                                    >
+                                        {t.imprimirBtn}
+                                    </button>
+                                </div>
 
-        <div className="space-y-3 bg-slate-900 p-3.5 rounded-xl border border-slate-700">
-            <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">{t.textosCartazLabel}</label>
-            <div>
-                <span className="text-xs font-bold text-slate-300 block mb-1">{t.tituloCartazLabel}</span>
-                <input 
-                    type="text" 
-                    value={cartazTitulo} 
-                    onChange={(e) => setCartazTitulo(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-extrabold focus:outline-none focus:border-amber-500"
-                />
-            </div>
-            <div>
-                <span className="text-xs font-bold text-slate-300 block mb-1">{t.subCartazLabel}</span>
-                <textarea 
-                    value={cartazSub} 
-                    onChange={(e) => setCartazSub(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-amber-500 resize-none"
-                    rows="2"
-                />
-            </div>
-        </div>
-        
-        <p className="text-xs font-bold text-slate-300 text-center italic">{t.prevCartazLabel}</p>
+                                <div className="space-y-3 bg-slate-900 p-3.5 rounded-xl border border-slate-700">
+                                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">{t.textosCartazLabel}</label>
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-300 block mb-1">{t.tituloCartazLabel}</span>
+                                        <input 
+                                            type="text" 
+                                            value={cartazTitulo} 
+                                            onChange={(e) => setCartazTitulo(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-extrabold focus:outline-none focus:border-amber-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-300 block mb-1">{t.subCartazLabel}</span>
+                                        <textarea 
+                                            value={cartazSub} 
+                                            onChange={(e) => setCartazSub(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-amber-500 resize-none"
+                                            rows="2"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <p className="text-xs font-bold text-slate-300 text-center italic">{t.prevCartazLabel}</p>
 
-        <div className="bg-white text-slate-900 p-6 rounded-lg border-4 border-amber-500 flex flex-col justify-between shadow-inner max-w-[280px] mx-auto aspect-[1/1.414]">
-            <ConteudoCartaz />
-        </div>
-    </div>
-</details>
+                                <div className="bg-white text-slate-900 p-6 rounded-lg border-4 border-amber-500 flex flex-col justify-between shadow-inner max-w-[280px] mx-auto aspect-[1/1.414]">
+                                    <ConteudoCartaz />
+                                </div>
+                            </div>
+                        </details>
 
                     </main>
 
-                    {/* BLOCO OCULTO PARA A IMPRESSÃO: DUAS CÓPIAS A5 VERTICAIS NUMA SÓ FOLHA A4 PAISAGEM */}
+                    {/* BLOCO OCULTO PARA A IMPRESSÃO */}
                     <div id="container-impressao" style={{display: 'none'}}>
                         <div className="cartaz-a5-vertical">
                             <ConteudoCartaz />
