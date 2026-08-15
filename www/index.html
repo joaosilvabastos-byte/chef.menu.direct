@@ -113,7 +113,7 @@
                 proConfirm: "Ativar versão PRO sem anúncios por apenas 7,50€/mês?" ,
                 configCartazLabel: "Configurar Cartaz / QR Code" ,
                 restauranteGrupoLabel: "Restaurante / Grupo",
-                limiteAtingidoMsg: "Atingiu o limite de 10 envios gratuitos com anúncios. Para continuar a enviar menus sem limites e sem publicidade, ative a versão PRO por 7,50€/mês."
+                limiteAtingidoMsg: "Atingiu o limite de envios gratuitos com anúncios. Para continuar a enviar menus sem limites e sem publicidade, ative a versão PRO por 7,50€/mês."
             },
             EN: {
                 proBtn: "PRO ($7.50)",
@@ -210,39 +210,51 @@
             }
         };
 
-        function App() {
-            const [lang, setLang] = React.useState("PT");
-            const t = Dicionario[lang];
+       function App() {
+    const [lang, setLang] = React.useState("PT");
+    const t = Dicionario[lang];
 
-            const [isPro, setIsPro] = React.useState(false);
-            const [showAdModal, setShowAdModal] = React.useState(false);
-            const [adCountdown, setAdCountdown] = React.useState(15);
+    // Lê o estado PRO diretamente do localStorage para não se perder ao reiniciar a app
+    const [isPro, setIsPro] = React.useState(() => {
+        return localStorage.getItem('isPro') === 'true';
+    });
 
-            // Contador de envios gratuitos guardado no localStorage
-            const [enviosGratuitosCount, setEnviosGratuitosCount] = React.useState(() => {
-                const salvo = localStorage.getItem('enviosGratuitosCountSalvo');
-                return salvo ? parseInt(salvo, 10) : 0;
-            });
-            
-            const [nomeRestaurante, setNomeRestaurante] = React.useState(() => {
-                return localStorage.getItem('nomeRestauranteSalvo') || "Restaurante António Marques";
-            });
+    const [showAdModal, setShowAdModal] = React.useState(false);       // Modal do anúncio de 15s
+    const [showPayModal, setShowPayModal] = React.useState(false);     // Modal de pagamento / Pro
+    const [adCountdown, setAdCountdown] = React.useState(15);
 
-            const [whatsappGrupoLink, setWhatsappGrupoLink] = React.useState(() => {
-                return localStorage.getItem('whatsappGrupoLinkSalvo') || "https://wa.me/CJIH7Pp3qaHWRPU8p8";
-            });
-            const [novoPratoNome, setNovoPratoNome] = React.useState("");
-            const [novoPratoPreco, setNovoPratoPreco] = React.useState("");
-            
-            const [pratosDB, setPratosDB] = React.useState(() => {
-                const salvo = localStorage.getItem('pratosDBSalvo');
-                return salvo ? JSON.parse(salvo) : [
-                    { id: 1, nome: "Frango na Brasa", preco: "9.50" },
-                    { id: 2, nome: "Costeletão de Vitelão", preco: "12.00" },
-                    { id: 3, nome: "Bacalhau à Brás", preco: "9.00" },
-                    { id: 4, nome: "Entrecosto Grelhado", preco: "10.00" }
-                ];
-            });
+    // Contador de envios gratuitos - FORÇADO A 1 PARA TESTES IMEDIATOS
+    const [enviosGratuitosCount, setEnviosGratuitosCount] = React.useState(1);
+
+    // Efeito para garantir que o contador no localStorage não atrapalha o teste
+    React.useEffect(() => {
+        setEnviosGratuitosCount(1);
+    }, []);
+
+    // Código de acesso e autorização
+    const [accessCode, setAccessCode] = React.useState("");
+    const [isAuthorizedCode, setIsAuthorizedCode] = React.useState(() => {
+        return localStorage.getItem('isAuthorizedCode') === 'true';
+    });
+    
+    const [nomeRestaurante, setNomeRestaurante] = React.useState(() => {
+        return localStorage.getItem('nomeRestauranteSalvo') || "Restaurante António Marques";
+    });
+    const [whatsappGrupoLink, setWhatsappGrupoLink] = React.useState(() => {
+        return localStorage.getItem('whatsappGrupoLinkSalvo') || "https://wa.me/CJIH7Pp3qaHWRPU8p8";
+    });
+    const [novoPratoNome, setNovoPratoNome] = React.useState("");
+    const [novoPratoPreco, setNovoPratoPreco] = React.useState("");
+    
+    const [pratosDB, setPratosDB] = React.useState(() => {
+        const salvo = localStorage.getItem('pratosDBSalvo');
+        return salvo ? JSON.parse(salvo) : [
+            { id: 1, nome: "Frango na Brasa", preco: "9.50" },
+            { id: 2, nome: "Costeletão de Vitelão", preco: "12.00" },
+            { id: 3, nome: "Bacalhau à Brás", preco: "9.00" },
+            { id: 4, nome: "Entrecosto Grelhado", preco: "10.00" }
+        ];
+    });
 
             const hoje = new Date().toISOString().split('T')[0];
             const [dataMenu, setDataMenu] = React.useState(hoje);
@@ -266,37 +278,52 @@
                 setRodapeWA(t.defaultRodapeWA);
             }, [lang]);
 
-            // --- INICIALIZAÇÃO SEGURA DOS ANÚNCIOS ---
+            // --- INICIALIZAÇÃO SEGURA DOS ANÚNCIOS E COMPRAS (REVENUECAT) ---
             React.useEffect(() => {
-                async function setupAds() {
+                async function setupAppServices() {
                     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
                         const { AdMob } = window.Capacitor.Plugins;
-                        if (!AdMob) return;
-
-                        try {
-                            await AdMob.initialize({
-                                requestTrackingAuthorization: true,
-                                testing: true
-                            });
-
-                            if (!isPro) {
-                                await AdMob.showBanner({
-                                    adId: 'ca-app-pub-3940256099942544/6300978111',
-                                    position: 'BOTTOM_CENTER',
-                                    size: 'BANNER',
-                                    margin: 0,
-                                    isTesting: true
-                                });
-                            } else {
-                                await AdMob.removeBanner();
-                            }
-                        } catch (e) {
-                            console.error("Erro AdMob:", e);
+                        
+                        // 1. Configurar AdMob
+                        if (AdMob) {
+                            try {
+                                await AdMob.initialize({ requestTrackingAuthorization: true, testing: true });
+                                if (!isPro) {
+                                    await AdMob.showBanner({
+                                        adId: 'ca-app-pub-3940256099942544/6300978111',
+                                        position: 'BOTTOM_CENTER',
+                                        size: 'BANNER',
+                                        margin: 0,
+                                        isTesting: true
+                                    });
+                                }
+                            } catch (e) { console.error("Erro AdMob:", e); }
                         }
+
+                        // 2. Configuração Robusta do RevenueCat
+                        const initPurchases = async () => {
+                            const Plugins = window.Capacitor.Plugins;
+                            const Purchases = Plugins.Purchases || Plugins.PurchasesPlugin || window.Purchases;
+
+                            if (Purchases) {
+                                try {
+                                    window.Purchases = Purchases;
+                                    await Purchases.configure({
+                                        apiKey: "goog_GEWfEbZUGzlLyBiTyHkRtpmnkJb"
+                                    });
+                                    console.log("✅ RevenueCat configurado com sucesso.");
+                                } catch (e) {
+                                    console.error("❌ Erro RevenueCat ao configurar:", e);
+                                }
+                            } else {
+                                // Tenta novamente em 1.5s se ainda não estiver injetado
+                                setTimeout(initPurchases, 1500);
+                            }
+                        };
+                        initPurchases();
                     }
                 }
-
-                setupAds();
+                setupAppServices();
             }, [isPro]);
 
             async function carregarEExibirInterstitial() {
@@ -354,46 +381,47 @@
                 setMenuSelecionado(menuSelecionado.filter(item => item.id !== id));
             };
 
-            const handleGerarEEnviar = () => {
-                if (menuSelecionado.length === 0) {
-                    alert(t.nenhumPrato);
-                    return;
-                }
+         const handleGerarEEnviar = () => {
+    if (menuSelecionado.length === 0) {
+        alert(t.nenhumPrato);
+        return;
+    }
 
-                // Se não é PRO, verificamos se já atingiu o limite de 10 envios gratuitos
-                if (!isPro) {
-                    if (enviosGratuitosCount >= 10) {
-                        alert(t.limiteAtingidoMsg);
-                        setIsPro(true); // Abre conversão ou força prompt
-                        return;
-                    }
+    // 1. VERIFICAÇÃO PRIORITÁRIA: Se é PRO ou autorizado, envia direto
+    if (isPro || isAuthorizedCode) {
+        dispararWhatsAppReal();
+        return;
+    }
 
-                    // Incrementa o contador de envios gratuitos e guarda
-                    const novoCount = enviosGratuitosCount + 1;
-                    setEnviosGratuitosCount(novoCount);
-                    localStorage.setItem('enviosGratuitosCountSalvo', novoCount);
+    // 2. VERIFICAÇÃO DE BLOQUEIO: Se atingiu o limite, ABRE O MODAL E PARA AQUI
+    if (enviosGratuitosCount >= 1) { // Limite de 1 para testes
+        setShowPayModal(true);
+        return; 
+    }
 
-                    setShowAdModal(true);
-                    setAdCountdown(15);
+    // 3. FLUXO NORMAL (Abaixo do limite): Incrementa, mostra anúncio e faz o timer
+    const novoCount = enviosGratuitosCount + 1;
+    setEnviosGratuitosCount(novoCount);
+    localStorage.setItem('enviosGratuitosCountSalvo', novoCount.toString());
 
-                    // Dispara o anúncio nativo se possível
-                    carregarEExibirInterstitial();
+    setShowAdModal(true);
+    setAdCountdown(15);
+    
+    // Só carrega o anúncio se não estivermos no limite
+    carregarEExibirInterstitial();
 
-                    let timer = setInterval(() => {
-                        setAdCountdown((prev) => {
-                            if (prev <= 1) {
-                                clearInterval(timer);
-                                setShowAdModal(false);
-                                dispararWhatsAppReal();
-                                return 0;
-                            }
-                            return prev - 1;
-                        });
-                    }, 1000);
-                } else {
-                    dispararWhatsAppReal();
-                }
-            };
+    let timer = setInterval(() => {
+        setAdCountdown((prev) => {
+            if (prev <= 1) {
+                clearInterval(timer);
+                setShowAdModal(false);
+                dispararWhatsAppReal();
+                return 0;
+            }
+            return prev - 1;
+        });
+    }, 1000);
+};
 
             const dispararWhatsAppReal = () => {
                 let texto = `*${nomeRestaurante.toUpperCase()}* - Menu do Dia (${dataMenu})\n\n`;
@@ -459,11 +487,7 @@
 
                             {!isPro ? (
                                 <button 
-                                    onClick={() => {
-                                        if(confirm(t.proConfirm)) {
-                                            setIsPro(true);
-                                        }
-                                    }}
+                                    onClick={() => setShowPayModal(true)}
                                     className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow transition active:scale-95"
                                 >
                                     {t.proBtn}
@@ -601,7 +625,7 @@
 
                             {!isPro && (
                                 <p className="text-[11px] text-amber-400/90 font-bold mb-3 text-center bg-amber-500/10 p-2 rounded border border-amber-500/20">
-                                    Envios gratuitos usados: {enviosGratuitosCount} / 10
+                                    Envios gratuitos usados: {enviosGratuitosCount} / 1
                                 </p>
                             )}
 
@@ -735,11 +759,80 @@ ${menuSelecionado.length > 0 ? menuSelecionado.map(i => `• ${i.nome} ${i.preco
                                 </div>
                                 <p className="text-xs font-semibold text-slate-400">{t.anuncioPro}</p>
                                 <button 
-                                    onClick={() => { setShowAdModal(false); setIsPro(true); }}
+                                    onClick={() => { setShowAdModal(false); setShowPayModal(true); }}
                                     className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black py-3 rounded-xl transition shadow-lg uppercase tracking-wider"
                                 >
                                     Ativar PRO Agora (7,50{t.moeda})
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DE PAGAMENTO / BLOQUEIO (FULLSCREEN) */}
+                    {showPayModal && (
+                        <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 backdrop-blur-md">
+                            <div className="bg-slate-900 border-2 border-amber-500/50 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+                                <div className="text-amber-400 text-4xl mb-2">💎</div>
+                                <h3 className="text-xl font-black text-amber-400 uppercase tracking-tight">Limite Atingido</h3>
+                                <p className="text-sm font-semibold text-slate-300 leading-relaxed">
+                                    {t.limiteAtingidoMsg}
+                                </p>
+                                <div className="space-y-3 pt-4">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const cap = window.Capacitor;
+                                                const Purchases = (cap && cap.Plugins && (cap.Plugins.Purchases || cap.Plugins.PurchasesPlugin)) || window.Purchases || window.PurchasesPlugin;
+
+                                                if (!Purchases || typeof Purchases.purchaseProduct !== 'function') {
+                                                    alert("Serviço de Compras Google Indisponível.\n\nCertifique-se que executou 'npx cap sync' e instalou via Android Studio.\n\nUse o MODO TESTE abaixo para validar o resto da app.");
+                                                    return;
+                                                }
+
+                                                const { customerInfo } = await Purchases.purchaseProduct({
+                                                    productIdentifier: 'chef_menu_pro_mensal'
+                                                });
+
+                                                if (customerInfo.entitlements.active['pro'] || customerInfo.activeSubscriptions.length > 0) {
+                                                    setShowPayModal(false);
+                                                    setIsPro(true);
+                                                    localStorage.setItem('isPro', 'true');
+                                                    alert("Parabéns! Versão PRO ativada com sucesso.");
+                                                    dispararWhatsAppReal();
+                                                }
+                                            } catch (error) {
+                                                if (!error.userCancelled) {
+                                                    console.error("Erro no pagamento:", error);
+                                                    alert("Erro ao processar o pagamento.");
+                                                }
+                                            }
+                                        }}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black py-4 rounded-xl shadow-xl transition active:scale-95 uppercase tracking-widest text-sm"
+                                    >
+                                        🛒 Ativar PRO (7,50{t.moeda})
+                                    </button>
+
+                                    <button
+                                        onClick={() => setShowPayModal(false)}
+                                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-2 rounded-lg text-xs uppercase"
+                                    >
+                                        Voltar
+                                    </button>
+
+                                    {/* BOTÃO DE SIMULAÇÃO (EXTREMAMENTE VISÍVEL PARA TESTES) */}
+                                    <button
+                                        onClick={() => {
+                                            if(confirm("ATIVAR MODO TESTE PRO?\n\nIsto libertará a aplicação para enviar menus e gerar QR codes sem limites no seu Oppo durante este teste.")) {
+                                                setIsPro(true);
+                                                localStorage.setItem('isPro', 'true');
+                                                setShowPayModal(false);
+                                            }
+                                        }}
+                                        className="w-full mt-6 bg-amber-500/20 text-amber-500 border-2 border-amber-500/50 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] animate-pulse"
+                                    >
+                                        ⚠️ ATIVAR MODO TESTE (CLIQUE AQUI) ⚠️
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
